@@ -143,13 +143,14 @@ const PD_TYPES = [
 ];
 
 /* ── BOT DIFFICULTY SETTINGS ── */
-// moveDelay = ticks between moves at 60fps.
-// Player minimum is ~9 ticks (160ms key-repeat), but humans also think and
-// backtrack, so effective average is higher.  Hard bot is fast but beatable.
+// moveDelay = ticks between moves at 60fps (1 tick ≈ 16.7 ms).
+// Human player moves every ~110 ms (≈7 ticks) at normal speed.
+// Bots take optimal BFS paths with no backtracking, so they need a larger
+// delay than raw human speed to stay beatable.  Hard bot ≈2× human interval.
 const BOT_DIFF = {
-  easy:   { moveDelay: 45, accuracy: 0.50, emoji: '🐢', name: 'EASY BOT' },
-  medium: { moveDelay: 28, accuracy: 0.70, emoji: '🐊', name: 'MEDIUM BOT' },
-  hard:   { moveDelay: 18, accuracy: 0.90, emoji: '🦅', name: 'HARD BOT' },
+  easy:   { moveDelay: 42, accuracy: 0.50, emoji: '🐢', name: 'EASY BOT' },
+  medium: { moveDelay: 24, accuracy: 0.70, emoji: '🐊', name: 'MEDIUM BOT' },
+  hard:   { moveDelay: 13, accuracy: 0.90, emoji: '🦅', name: 'HARD BOT' },
 };
 
 /* ══════════════════════════════════════════════
