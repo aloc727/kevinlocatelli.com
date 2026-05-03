@@ -1,0 +1,73 @@
+{
+  "rules": {
+    "scores": {
+      // Anyone can read the leaderboard.
+      ".read": true,
+
+      // Block bulk write/delete on the whole /scores node.
+      // Individual child writes are handled below.
+      ".write": false,
+
+      "$scoreId": {
+        // Allow: create a new entry (data doesn't exist yet)
+        //        delete an existing entry (newData won't exist — used by pruning)
+        // Deny:  overwrite/update an existing entry (blocks tampering with stored scores)
+        ".write": "!data.exists() || !newData.exists()",
+
+        ".validate": "!newData.exists() || (
+          newData.hasChildren(['name', 'score', 'timestamp', 'datetime']) &&
+
+          newData.child('name').isString() &&
+          newData.child('name').val().length >= 1 &&
+          newData.child('name').val().length <= 20 &&
+
+          newData.child('score').isNumber() &&
+          newData.child('score').val() >= 0 &&
+          newData.child('score').val() <= 3500 &&
+
+          newData.child('timestamp').isNumber() &&
+          newData.child('timestamp').val() > 0 &&
+
+          newData.child('datetime').isString() &&
+          newData.child('datetime').val().length <= 40
+        )"
+      }
+    },
+
+    // Multiplayer rooms — short-lived, deleted when each game ends.
+    // Public read/write for joining without login.
+    // Validation: rooms must have seed + status; player slots are validated on write.
+    "rooms": {
+      ".read": true,
+      "$roomId": {
+        // $roomId must be exactly 4 uppercase letters A–Z
+        ".validate": "$roomId.matches(/^[A-Z]{4}$/) && (!newData.exists() || newData.hasChildren(['seed', 'status']))",
+        ".write": true,
+
+        "players": {
+          "$playerId": {
+            ".validate": "!newData.exists() || (
+              newData.hasChildren(['name', 'col', 'row', 'score', 'stations', 'joinedAt']) &&
+
+              newData.child('name').isString() &&
+              newData.child('name').val().length >= 1 &&
+              newData.child('name').val().length <= 20 &&
+
+              newData.child('score').isNumber() &&
+              newData.child('score').val() >= 0 &&
+              newData.child('score').val() <= 3500 &&
+
+              newData.child('col').isNumber() &&
+              newData.child('row').isNumber() &&
+
+              newData.child('stations').isString() &&
+              newData.child('stations').val().length <= 20 &&
+
+              newData.child('joinedAt').isNumber()
+            )"
+          }
+        }
+      }
+    }
+  }
+}

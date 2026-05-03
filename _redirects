@@ -1,0 +1,10 @@
+# ── PLACE THIS FILE IN YOUR kevinlocatelli.com SITE FOLDER ──────────────────
+# Rename it to exactly: _redirects  (no extension, no .txt)
+#
+# Replace YOUR-EVERGLADES-NETLIFY-URL below with your actual Everglades
+# Netlify subdomain, e.g.  amazing-fox-abc123.netlify.app
+# (Find it in Netlify → your Everglades site → "Site overview")
+# ─────────────────────────────────────────────────────────────────────────────
+
+/everglades    /everglades/   301
+/everglades/*  https://elegant-granita-78d270.netlify.app/:splat  200

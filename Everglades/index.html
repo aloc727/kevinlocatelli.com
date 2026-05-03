@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src  'self' 'unsafe-inline';
+    style-src   'self' 'unsafe-inline' https://fonts.googleapis.com;
+    font-src    https://fonts.gstatic.com;
+    connect-src https://everglades-leaderboard-default-rtdb.firebaseio.com;
+    img-src     'self' data:;
+    object-src  'none';
+    base-uri    'self';
+    frame-ancestors 'none';
+  ">
+  <title>EVERGLADES: River of Grass Adventure</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="scanlines"></div>
+<div id="particles"></div>
+<div id="flash-overlay"></div>
+
+<!-- ══════════════════════════════════════════════
+     TITLE SCREEN
+══════════════════════════════════════════════ -->
+<div id="screen-title" class="screen active">
+  <div class="title-wrap">
+    <div class="nps-badge">⬡ NPS ⬡</div>
+    <div class="game-title">
+      <div class="title-line1">EVERGLADES</div>
+      <div class="title-line2">NATIONAL PARK</div>
+    </div>
+    <div class="title-sub">— RIVER OF GRASS ADVENTURE —</div>
+    <div class="gator-row">
+      <span class="gator">🐊</span>
+      <span class="waves">≈ ≈ ≈ ≈ ≈ ≈ ≈</span>
+      <span class="gator flip">🐊</span>
+    </div>
+    <div class="title-menu">
+      <button class="menu-btn primary-btn" onclick="goTo('username')" data-mode="solo">▶ PLAY SINGLE PLAYER</button>
+      <button class="menu-btn bot-btn"     onclick="goTo('botsetup')">🤖 PLAY VS BOT</button>
+      <button class="menu-btn multi-btn"   onclick="goTo('multiplayer')">👥 PLAY MULTIPLAYER</button>
+      <button class="menu-btn"             onclick="goTo('study')">📚 STUDY PARK</button>
+      <button class="menu-btn gold-btn"    onclick="goTo('leaderboard')">🏆 LEADERBOARD</button>
+    </div>
+    <div class="title-footer">© KEVIN'S NATIONAL PARK PROJECT</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     USERNAME SCREEN
+══════════════════════════════════════════════ -->
+<div id="screen-username" class="screen">
+  <div class="center-wrap">
+    <div class="form-panel">
+      <div class="form-title">🐊 ENTER YOUR NAME</div>
+      <div class="form-sub">EXPLORER, WHAT SHALL WE CALL YOU?</div>
+      <input id="username-input" class="name-input" type="text"
+             maxlength="20" placeholder="YOUR NAME" autocomplete="off"
+             onkeydown="if(event.key==='Enter')startGame()">
+      <button class="menu-btn primary-btn" onclick="startGame()">▶ START ADVENTURE</button>
+      <button class="menu-btn small-btn" onclick="goTo('title')">◄ BACK</button>
+    </div>
+    <div class="instructions">
+      <div class="inst-title">HOW TO PLAY</div>
+      <div class="inst-line">🎮 ARROW KEYS OR WASD TO MOVE</div>
+      <div class="inst-line">📍 REACH ALL 4 GLOWING STATIONS</div>
+      <div class="inst-line">📝 ANSWER QUIZ QUESTIONS TO SCORE</div>
+      <div class="inst-line">⭐ COLLECT POWER-UPS ALONG THE WAY</div>
+      <div class="inst-line">🚪 REACH THE EXIT TO WIN!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MAZE SCREEN
+══════════════════════════════════════════════ -->
+<div id="screen-maze" class="screen">
+  <div class="maze-hud">
+    <div class="hud-player-block">
+      <span class="hud-label">🐊 YOU</span>
+      <span class="hud-val" id="hud-name">—</span>
+      <span class="hud-divider">|</span>
+      <span class="hud-label">SCORE</span>
+      <span class="hud-val gold-val" id="hud-score">0</span>
+      <span class="hud-divider">|</span>
+      <span class="hud-label">STATIONS</span>
+      <span class="hud-val" id="hud-stations">0/4</span>
+    </div>
+    <div class="hud-bot-block" id="hud-bot-block" style="display:none">
+      <span class="hud-label bot-label" id="hud-bot-icon">🤖 BOT</span>
+      <span class="hud-val bot-val" id="hud-bot-name">—</span>
+      <span class="hud-divider">|</span>
+      <span class="hud-label">SCORE</span>
+      <span class="hud-val bot-val" id="hud-bot-score">0</span>
+      <span class="hud-divider">|</span>
+      <span class="hud-label">STATIONS</span>
+      <span class="hud-val bot-val" id="hud-bot-stations">0/4</span>
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="maze-canvas"></canvas>
+  </div>
+
+  <div class="powerup-bar" id="powerup-bar">
+    <span class="pu-bar-label">POWER-UPS:</span>
+    <span class="pu-empty" id="pu-empty">NONE YET — EXPLORE TO FIND THEM!</span>
+    <div id="pu-slots"></div>
+  </div>
+
+  <div id="dpad" class="dpad">
+    <button class="dp-btn dp-up"    ontouchstart="dpadStart(0,-1)" ontouchend="dpadEnd()" onmousedown="dpadStart(0,-1)" onmouseup="dpadEnd()">▲</button>
+    <button class="dp-btn dp-left"  ontouchstart="dpadStart(-1,0)" ontouchend="dpadEnd()" onmousedown="dpadStart(-1,0)" onmouseup="dpadEnd()">◄</button>
+    <button class="dp-btn dp-mid"></button>
+    <button class="dp-btn dp-right" ontouchstart="dpadStart(1,0)"  ontouchend="dpadEnd()" onmousedown="dpadStart(1,0)"  onmouseup="dpadEnd()">►</button>
+    <button class="dp-btn dp-down"  ontouchstart="dpadStart(0,1)"  ontouchend="dpadEnd()" onmousedown="dpadStart(0,1)"  onmouseup="dpadEnd()">▼</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     BOT SETUP SCREEN
+══════════════════════════════════════════════ -->
+<div id="screen-botsetup" class="screen">
+  <div class="hdr">
+    <button class="nav-btn" onclick="goTo('title')">◄ BACK</button>
+    <div class="hdr-title">— 🤖 PLAY VS BOT —</div>
+    <div class="stars">★★★★★</div>
+  </div>
+  <div class="center-wrap">
+    <div class="form-panel" style="max-width:480px">
+      <div class="form-title">CHOOSE YOUR OPPONENT</div>
+      <div class="diff-grid">
+        <button class="diff-btn easy-diff" onclick="goTo('username');setPendingMode('bot','easy')">
+          <div class="diff-emoji">🐢</div>
+          <div class="diff-name">EASY</div>
+          <div class="diff-desc">SLOWER · 50% QUIZ ACCURACY</div>
+        </button>
+        <button class="diff-btn med-diff" onclick="goTo('username');setPendingMode('bot','medium')">
+          <div class="diff-emoji">🐊</div>
+          <div class="diff-name">MEDIUM</div>
+          <div class="diff-desc">MATCHED SPEED · 70% ACCURACY</div>
+        </button>
+        <button class="diff-btn hard-diff" onclick="goTo('username');setPendingMode('bot','hard')">
+          <div class="diff-emoji">🦅</div>
+          <div class="diff-name">HARD</div>
+          <div class="diff-desc">FASTER · 90% QUIZ ACCURACY</div>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MULTIPLAYER LOBBY
+══════════════════════════════════════════════ -->
+<div id="screen-multiplayer" class="screen">
+  <div class="hdr">
+    <button class="nav-btn" onclick="goTo('title')">◄ BACK</button>
+    <div class="hdr-title">— 👥 MULTIPLAYER —</div>
+    <div class="badge b3">LIVE</div>
+  </div>
+  <div class="center-wrap">
+    <div class="mp-mode-grid">
+
+      <!-- CREATE ROOM -->
+      <div class="form-panel mp-panel">
+        <div class="form-title" style="color:var(--green)">CREATE ROOM</div>
+        <div class="form-sub">SHARE YOUR CODE WITH FRIENDS</div>
+        <label class="mp-input-label" for="mp-create-name">YOUR USERNAME</label>
+        <input id="mp-create-name" class="name-input" type="text" maxlength="20"
+               placeholder="E.G. GATOR123" autocomplete="off" spellcheck="false">
+        <div id="mp-create-error" class="mp-error"></div>
+        <button class="menu-btn primary-btn" onclick="mpCreate()">▶ CREATE ROOM</button>
+      </div>
+
+      <div class="mp-or">— OR —</div>
+
+      <!-- JOIN ROOM -->
+      <div class="form-panel mp-panel">
+        <div class="form-title" style="color:var(--blue)">JOIN ROOM</div>
+        <div class="form-sub">ENTER YOUR FRIEND'S 4-LETTER CODE</div>
+        <label class="mp-input-label" for="mp-join-name">YOUR USERNAME</label>
+        <input id="mp-join-name" class="name-input" type="text" maxlength="20"
+               placeholder="E.G. GATOR123" autocomplete="off" spellcheck="false">
+        <label class="mp-input-label" for="mp-join-code">ROOM CODE (4 LETTERS)</label>
+        <input id="mp-join-code" class="name-input mp-code-input" type="text" maxlength="4"
+               placeholder="ABCD" autocomplete="off" spellcheck="false">
+        <div id="mp-join-error" class="mp-error"></div>
+        <button class="menu-btn" style="border-color:var(--blue);color:var(--blue)" onclick="mpJoin()">▶ JOIN ROOM</button>
+      </div>
+
+    </div>
+    <div class="mp-divider">— OR PLAY ON THIS DEVICE —</div>
+    <button class="menu-btn small-btn" onclick="goTo('username');setPendingMode('passplay',null)">🎮 PASS &amp; PLAY (SAME DEVICE)</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MULTIPLAYER LOBBY / WAITING ROOM
+══════════════════════════════════════════════ -->
+<div id="screen-mp-wait" class="screen">
+  <div class="hdr">
+    <button class="nav-btn" onclick="mpCancel()">✕ LEAVE</button>
+    <div class="hdr-title">— 👥 RACE LOBBY —</div>
+    <div id="mp-player-count" class="mp-count-badge">1 / 10</div>
+  </div>
+  <div class="center-wrap">
+    <div class="mp-lobby-wrap">
+
+      <!-- Room code card -->
+      <div class="mp-code-card">
+        <div class="mp-code-label">ROOM CODE</div>
+        <div class="mp-room-code" id="mp-room-code-display">????</div>
+        <div class="form-sub">SHARE THIS WITH YOUR FRIENDS</div>
+      </div>
+
+      <!-- Live player list -->
+      <div class="mp-lobby-list-wrap">
+        <div class="mp-lobby-list-title">PLAYERS IN LOBBY</div>
+        <div class="mp-player-list" id="mp-player-list"></div>
+      </div>
+
+      <!-- Host controls -->
+      <div id="mp-host-controls" style="display:none;width:100%;max-width:340px">
+        <button class="menu-btn primary-btn mp-start-btn" id="mp-start-btn"
+                onclick="mpStartRace()" disabled>
+          WAITING FOR MORE PLAYERS… (1/10)
+        </button>
+        <div class="form-sub" style="margin-top:6px">YOU ARE THE HOST — PRESS START WHEN READY</div>
+      </div>
+
+      <!-- Guest wait message -->
+      <div id="mp-guest-wait" class="mp-guest-msg" style="display:none">
+        ⏳ WAITING FOR HOST TO START THE RACE…
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     QUIZ OVERLAY (shown on top of maze)
+══════════════════════════════════════════════ -->
+<div id="quiz-overlay" class="overlay hidden">
+  <div class="quiz-panel">
+    <div class="quiz-station-label" id="quiz-station-label">🗺️ AREA 1: BASIC INFO</div>
+    <div class="quiz-progress">
+      <span id="quiz-q-num">QUESTION 1 / 3</span>
+      <div class="timer-bar-wrap">
+        <div class="timer-bar" id="timer-bar"></div>
+      </div>
+      <span class="timer-val" id="timer-val">20</span>
+    </div>
+    <div class="quiz-question" id="quiz-question">LOADING...</div>
+    <div class="quiz-options" id="quiz-options"></div>
+    <div class="quiz-powerup-row" id="quiz-pu-row">
+      <span class="pu-row-label">USE POWER-UP:</span>
+      <div id="quiz-pu-btns"></div>
+    </div>
+    <div class="quiz-feedback" id="quiz-feedback"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     POWERUP POPUP
+══════════════════════════════════════════════ -->
+<div id="powerup-popup" class="overlay hidden">
+  <div class="pu-popup">
+    <div class="pu-found-label" id="pu-found-label">⚡ POWER-UP FOUND!</div>
+    <div class="pu-popup-emoji" id="pu-emoji">⭐</div>
+    <div class="pu-popup-name" id="pu-name">DOUBLE XP</div>
+    <div class="pu-popup-desc" id="pu-desc">2× POINTS ON NEXT QUESTION</div>
+    <button class="menu-btn primary-btn" id="pu-collect-btn" onclick="closePowerupPopup()">▶ COLLECT!</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     VICTORY SCREEN
+══════════════════════════════════════════════ -->
+<div id="screen-victory" class="screen">
+  <div class="center-wrap">
+    <div class="victory-panel">
+      <div class="victory-title">🏆 MISSION COMPLETE!</div>
+      <div class="victory-sub">EXPLORER: <span id="victory-name" class="gold-val">—</span></div>
+      <div class="score-display">
+        <div class="score-label">FINAL SCORE</div>
+        <div class="score-big" id="victory-score">0</div>
+      </div>
+      <div class="victory-stats" id="victory-stats"></div>
+      <div class="victory-btns">
+        <button class="menu-btn primary-btn" onclick="submitScore()">🏆 SUBMIT SCORE</button>
+        <button class="menu-btn" onclick="goTo('leaderboard')">📊 VIEW LEADERBOARD</button>
+        <button class="menu-btn small-btn" onclick="goTo('title')">◄ TITLE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     LEADERBOARD SCREEN
+══════════════════════════════════════════════ -->
+<div id="screen-leaderboard" class="screen">
+  <div class="hdr">
+    <button class="nav-btn" onclick="goTo('title')">◄ TITLE</button>
+    <div class="hdr-title gold-text">— 🏆 TOP EXPLORERS —</div>
+    <div></div>
+  </div>
+  <div class="scroll-body">
+    <div id="lb-loading" class="lb-loading">⏳ LOADING SCORES...</div>
+    <div id="lb-table" class="lb-table"></div>
+    <div id="lb-personal-best" class="lb-personal-best"></div>
+    <div class="lb-footer">GLOBAL LEADERBOARD · TOP 20 ALL-TIME · UP TO 1,000 SCORES STORED</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     STUDY MAP
+══════════════════════════════════════════════ -->
+<div id="screen-study" class="screen">
+  <div class="hdr">
+    <button class="nav-btn" onclick="goTo('title')">◄ TITLE</button>
+    <div class="hdr-title">— 📚 STUDY MODE —</div>
+    <div class="stars">★★★★★</div>
+  </div>
+  <div class="map-prompt">SELECT A TOPIC TO STUDY</div>
+  <div class="world-map">
+    <div class="map-tile tile-1" onclick="goToStudy('basics')">
+      <div class="tile-num">AREA 1</div>
+      <div class="tile-emoji">🗺️</div>
+      <div class="tile-name">BASIC INFO</div>
+      <div class="tile-sub">LOCATION · SIZE · FACTS</div>
+    </div>
+    <div class="map-tile tile-2" onclick="goToStudy('landforms')">
+      <div class="tile-num">AREA 2</div>
+      <div class="tile-emoji">🌿</div>
+      <div class="tile-name">LANDFORMS</div>
+      <div class="tile-sub">WETLANDS · HABITATS</div>
+    </div>
+    <div class="map-tile tile-3" onclick="goToStudy('weather')">
+      <div class="tile-num">AREA 3</div>
+      <div class="tile-emoji">🌦️</div>
+      <div class="tile-name">WEATHER</div>
+      <div class="tile-sub">SEASONS · TEMPS</div>
+    </div>
+    <div class="map-tile tile-4" onclick="goToStudy('activities')">
+      <div class="tile-num">AREA 4</div>
+      <div class="tile-emoji">🚣</div>
+      <div class="tile-name">ACTIVITIES</div>
+      <div class="tile-sub">TOURS · HIKES · KAYAK</div>
+    </div>
+  </div>
+  <div class="map-footer-hint">STUDY BEFORE YOU PLAY!</div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     STUDY INFO SCREENS (4 topics)
+══════════════════════════════════════════════ -->
+<div id="screen-basics" class="screen">
+  <div class="hdr">
+    <button class="nav-btn" onclick="goTo('study')">◄ MAP</button>
+    <div class="hdr-title area1-col">— AREA 1: BASIC INFO —</div>
+    <div class="badge b1">INTEL</div>
+  </div>
+  <div class="scroll-body">
+    <div class="area-banner">🗺️ PARK STATS</div>
+    <div class="stat-table">
+      <div class="stat-row"><div class="sk">ESTABLISHED</div><div class="sb"><div class="sf" data-w="100"></div></div><div class="sv">1947</div></div>
+      <div class="stat-row"><div class="sk">REGION</div><div class="sb"><div class="sf" data-w="90"></div></div><div class="sv">SOUTHEAST</div></div>
+      <div class="stat-row"><div class="sk">LOCATION</div><div class="sb"><div class="sf" data-w="85"></div></div><div class="sv">SOUTHERN FLORIDA</div></div>
+      <div class="stat-row"><div class="sk">SIZE</div><div class="sb"><div class="sf" data-w="75"></div></div><div class="sv">2,357 SQ. MILES</div></div>
+      <div class="stat-row"><div class="sk">AVG RAINFALL</div><div class="sb"><div class="sf" data-w="60"></div></div><div class="sv">60 IN/YEAR</div></div>
+      <div class="stat-row"><div class="sk">VISITORS/YEAR</div><div class="sb"><div class="sf" data-w="80"></div></div><div class="sv">1 MILLION</div></div>
+    </div>
+    <div class="info-card gold-card">
+      <div class="ic-label">🏆 HIGHEST POINT</div>
+      <div class="ic-text">SHARK VALLEY OBSERVATION TOWER</div>
+    </div>
+    <div class="info-card">
+      <div class="ic-label">📍 PARK ADDRESS</div>
+      <div class="ic-text">40001 STATE ROAD · HOMESTEAD, FL</div>
+      <div class="ic-sub">ENTRANCE STAFFED: 8:00–4:30 &nbsp;|&nbsp; OPEN 24/7</div>
+    </div>
+    <div class="source-row">
+      <span class="src-lbl">SOURCES:</span>
+      <span class="src-tag">TRUE BOOK</span>
+      <span class="src-tag">NPS WEBSITE</span>
+    </div>
+  </div>
+</div>
+
+<div id="screen-landforms" class="screen">
+  <div class="hdr">
+    <button class="nav-btn" onclick="goTo('study')">◄ MAP</button>
+    <div class="hdr-title area2-col">— AREA 2: LANDFORMS —</div>
+    <div class="badge b2">TERRAIN</div>
+  </div>
+  <div class="scroll-body">
+    <div class="area-banner">🌿 FIELD DISCOVERIES</div>
+    <div class="discovery" data-delay="0"><div class="disc-num">01</div><div class="disc-body"><div class="disc-text">THE EVERGLADES HAS WETLANDS WITH MANY ANIMALS SUCH AS ALLIGATORS, TOAD FISH AND CROCODILES.</div><div class="disc-src">TRUE BOOK</div></div></div>
+    <div class="discovery disc-special" data-delay="100"><div class="disc-num">02</div><div class="disc-body"><div class="disc-text">★ THE EVERGLADES IS THE ONLY PLACE WHERE ALLIGATORS AND CROCODILES LIVE AT THE SAME PLACE.</div><div class="disc-src">AIRBOAT TOUR</div></div></div>
+    <div class="discovery" data-delay="200"><div class="disc-num">03</div><div class="disc-body"><div class="disc-text">WATER DRAINS SLOWLY IN THE WETLANDS.</div><div class="disc-src">TRUE BOOK</div></div></div>
+    <div class="discovery" data-delay="300"><div class="disc-num">04</div><div class="disc-body"><div class="disc-text">THE EVERGLADES HAS A LOT OF DRY AND WET HABITATS HOUSING ANIMALS LIKE EGRETS, SNAKES, AND WOOD STORKS.</div><div class="disc-src">NPS WEBSITE</div></div></div>
+    <div class="discovery disc-special" data-delay="400"><div class="disc-num">05</div><div class="disc-body"><div class="disc-text">TEN THOUSAND ISLANDS HAS MANY ISLANDS — NOT EXACTLY TEN THOUSAND. IT HAS AN ESTUARINE ECOSYSTEM, WHICH MEANS IT CONNECTS FRESHWATER AND SALT WATER.</div><div class="disc-src">TRUE BOOK</div></div></div>
+    <div class="source-row"><span class="src-lbl">SOURCES:</span><span class="src-tag">TRUE BOOK</span><span class="src-tag">NPS WEBSITE</span><span class="src-tag">AIRBOAT TOUR</span></div>
+  </div>
+</div>
+
+<div id="screen-weather" class="screen">
+  <div class="hdr">
+    <button class="nav-btn" onclick="goTo('study')">◄ MAP</button>
+    <div class="hdr-title area3-col">— AREA 3: WEATHER —</div>
+    <div class="badge b3">FORECAST</div>
+  </div>
+  <div class="scroll-body">
+    <div class="area-banner">🌦️ CLIMATE DATA</div>
+    <div class="season-grid">
+      <div class="season-card wet"><div class="season-emoji">☀️🌧️</div><div class="season-name">WET SEASON</div><div class="season-dates">MID-MAY — NOVEMBER</div><div class="season-desc">HOT &amp; HUMID</div><div class="season-temp">LOW 90s°F</div></div>
+      <div class="season-card dry"><div class="season-emoji">☀️</div><div class="season-name">DRY SEASON</div><div class="season-dates">DECEMBER — MID-MAY</div><div class="season-desc">MILD &amp; DRY</div><div class="season-temp">LOW 50s – HIGH 70s°F</div></div>
+    </div>
+    <div class="temp-panel">
+      <div class="temp-title">📊 ANNUAL TEMPERATURE STATS</div>
+      <div class="temp-row"><span class="temp-lbl">MAX AVG</span><div class="temp-track"><div class="temp-fill hot" data-w="85"></div></div><span class="temp-val hot-text">85°F / 30°C</span></div>
+      <div class="temp-row"><span class="temp-lbl">MIN AVG</span><div class="temp-track"><div class="temp-fill cool" data-w="65"></div></div><span class="temp-val cool-text">65°F / 18°C</span></div>
+    </div>
+    <div class="source-row"><span class="src-lbl">SOURCE:</span><span class="src-tag">NPS WEBSITE</span></div>
+  </div>
+</div>
+
+<div id="screen-activities" class="screen">
+  <div class="hdr">
+    <button class="nav-btn" onclick="goTo('study')">◄ MAP</button>
+    <div class="hdr-title area4-col">— AREA 4: ACTIVITIES —</div>
+    <div class="badge b4">QUESTS</div>
+  </div>
+  <div class="scroll-body">
+    <div class="area-banner">🚣 AVAILABLE QUESTS</div>
+    <div class="quest-block">
+      <div class="quest-hdr tour-hdr">🎟️ &nbsp;GUIDED TOURS</div>
+      <div class="quest-item"><span class="qi-bullet">▶</span><div class="qi-text"><div class="qi-name">SHARK VALLEY TRAM TOUR</div><div class="qi-desc">FIFTEEN MILE LOOP · LEADS TO THE OBSERVATION TOWER · 2 HOUR TOUR</div></div></div>
+    </div>
+    <div class="quest-block">
+      <div class="quest-hdr hike-hdr">🥾 &nbsp;HIKING TRAILS</div>
+      <div class="trail-chips">
+        <span class="chip green-chip">ANHINGA TRAIL</span><span class="chip green-chip">GUMBO LIMBO TRAIL</span><span class="chip green-chip">PINELANDS TRAIL</span><span class="chip green-chip">PAHAY-OKEE OVERLOOK</span><span class="chip green-chip">WEST LAKE TRAIL</span><span class="chip green-chip">ECO POND TRAIL</span><span class="chip green-chip">BEAR LAKE TRAIL</span><span class="chip more-chip">+ AND MORE...</span>
+      </div>
+    </div>
+    <div class="quest-block">
+      <div class="quest-hdr kayak-hdr">🛶 &nbsp;CANOE / KAYAK TRAILS</div>
+      <div class="trail-chips">
+        <span class="chip blue-chip">SANDFLY ISLAND LOOP</span><span class="chip blue-chip">TAMER RIVER</span><span class="chip blue-chip">HALFWAY CREEK</span><span class="chip blue-chip">NINE MILE POND</span><span class="chip blue-chip">NOBLE HAMMOCK</span><span class="chip blue-chip">FLORIDA BAY</span><span class="chip blue-chip">BEAR LAKE</span>
+      </div>
+    </div>
+    <div class="source-row"><span class="src-lbl">SOURCE:</span><span class="src-tag">NPS WEBSITE</span></div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
