@@ -560,7 +560,7 @@ const LB = {
       if (all.length <= LB_MAX) return;
 
       const top10Ids = new Set(
-        [...all].sort((a, b) => b.score - a.score).slice(0, 20).map(s => s.id)
+        [...all].sort((a, b) => b.score - a.score).slice(0, 50).map(s => s.id)
       );
       const byAge    = [...all].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
@@ -1641,7 +1641,7 @@ async function renderLeaderboard() {
   }
 
   const sorted  = [...all].sort((a, b) => b.score - a.score);
-  const top20   = sorted.slice(0, 20);
+  const top20   = sorted.slice(0, 50);
   const medals  = ['🥇', '🥈', '🥉'];
   const curName = (G.username || '').toUpperCase();
 
@@ -1657,13 +1657,13 @@ async function renderLeaderboard() {
     </div>`;
   }).join('');
 
-  // Personal best — only shown when the player's best score falls outside the top 20
+  // Personal best — only shown when the player's best score falls outside the top 50
   if (curName) {
     const myScores = all.filter(s => s.name === curName);
     if (myScores.length) {
       const myBest  = myScores.sort((a, b) => b.score - a.score)[0];
       const myRank  = sorted.findIndex(s => s.id === myBest.id) + 1;
-      if (myRank > 20) {
+      if (myRank > 50) {
         personalDiv.innerHTML = `
           <div class="lb-personal-header">— YOUR PERSONAL BEST —</div>
           <div class="lb-row lb-self">
